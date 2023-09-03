@@ -3,6 +3,6 @@ package medium;
 public class MediumTasksRunner {
 
     public static void main(String[] args){
-        DequeUniqueNumbers.solution();
+        DequeUniqueNumsMap.solution();
     }
 }
