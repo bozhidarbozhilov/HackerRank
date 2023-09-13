@@ -58,7 +58,8 @@ class Priorities {
         Comparator<Student> studentComparator = new Comparator<Student>() {
             @Override
             public int compare(Student s1, Student s2) {
-                int cgpaCompare = Double.compare(s2.getCGPA(), s1.getCGPA());
+                int cgpaCompare = Double.compare(s1.getCGPA(), s2.getCGPA());
+                //int cgpaCompare = Double.compare(s2.getCGPA(), s1.getCGPA());
                 int nameCompare = s1.getName().compareTo(s2.getName());
                 if (cgpaCompare != 0) {
                     return cgpaCompare;
