@@ -142,10 +142,10 @@ class NodeInfo {
     Integer value;
     Color color;
     Integer depth;
-    List<Integer> children;
+    Set<Integer> children;
     Integer parent;
 
-    public NodeInfo(Integer value, Color color, Integer depth, List<Integer> children, Integer parent) {
+    public NodeInfo(Integer value, Color color, Integer depth, Set<Integer> children, Integer parent) {
         this.value = value;
         this.color = color;
         this.depth = depth;
@@ -164,69 +164,166 @@ public class Solution {
     public static Tree solve(){
         Scanner sc = new Scanner(System.in);
         int numOfNodes = Integer.parseInt(sc.nextLine());
+        NodeInfo[] rawNodes = new NodeInfo[numOfNodes];
+        Tree[] tree = new Tree[numOfNodes];
+        Map<Integer, Set<Integer>> edges = new HashMap<>();
+
+        for (int i = 0; i < numOfNodes; i++) {
+            rawNodes[i] = new NodeInfo(sc.nextInt(), null, -1, new HashSet<>(), -1);
+        }
+        for (int i = 0; i < numOfNodes; i++) {
+            rawNodes[i].color = getColor(sc.next());
+        }
+        rawNodes[0].depth = 0;
+        int counter = 0;
+        boolean isSet = false;
+        while(counter<numOfNodes-1 || !edges.isEmpty()){
+            int firstIndex = sc.nextInt()-1;
+            int secondIndex = sc.nextInt()-1;
+            if(counter < numOfNodes-1){
+                isSet = addChild(rawNodes, firstIndex, secondIndex);
+                if(!isSet){
+                    edges.putIfAbsent(firstIndex, new HashSet<>());
+                    edges.get(firstIndex).add(secondIndex);
+                    edges.putIfAbsent(secondIndex, new HashSet<>());
+                    edges.get(secondIndex).add(firstIndex);
+                }
+            }
+            if(!edges.isEmpty()){
+                Integer currentKey = null;
+                for(Integer key : edges.keySet()){
+                    currentKey = key;
+                    Set<Integer> values = edges.get(key);
+                    Integer currentValue = null;
+                    for(Integer value:values){
+                        isSet = addChild(rawNodes, key, value);
+                        currentValue = value;
+                        if(isSet){
+                            break;
+                        }
+                    }
+                    if(isSet){
+                        edges.get(key).remove(currentValue);
+                        break;
+                    }
+                }
+                if (edges.get(currentKey).isEmpty()) {
+                    edges.remove(currentKey);
+                }
+            }
+            counter++;
+        }
+
+        fillTree(rawNodes, tree, 0);
+        return tree[0];
+    }
+    public static Tree solve2(){
+        Scanner sc = new Scanner(System.in);
+        int numOfNodes = Integer.parseInt(sc.nextLine());
         String[] inputValues = sc.nextLine().split("\\s");
         String[] colorsValue = sc.nextLine().split("\\s");
         List<String> edges = new ArrayList<>();
-        NodeInfo[] rawNodes = new NodeInfo[numOfNodes];
-        List<Tree> tree = new ArrayList<>(Collections.nCopies(numOfNodes, null));
 
-        rawNodes[0] = new NodeInfo(Integer.parseInt(inputValues[0]), getColor(colorsValue[0]), 0, new ArrayList<>(), -1);
+        NodeInfo[] rawNodes = new NodeInfo[numOfNodes];
+        Tree[] tree = new Tree[numOfNodes];
+        rawNodes[0] = new NodeInfo(Integer.parseInt(inputValues[0]), getColor(colorsValue[0]), 0, new HashSet<>(), -1);
         for (int i = 1; i < numOfNodes; i++) {
             int value = Integer.parseInt(inputValues[i]);
             Color color = getColor(colorsValue[i]);
-            NodeInfo tmp = new NodeInfo(value, color, -1, new ArrayList<>(), -1);
+            NodeInfo tmp = new NodeInfo(value, color, -1, new HashSet<>(), -1);
             rawNodes[i]=tmp;
         }
-        for (int i = 0; i < numOfNodes - 1; i++) {
+        int counter = 0;
+        boolean isSet = false;
+        while(counter<numOfNodes-1 || !edges.isEmpty()){
             String line = sc.nextLine();
-            edges.add(line);
-        }
-        while(!edges.isEmpty()){
-            boolean isSet = false;
-            String currentEdge = null;
-            for(String edge : edges){
-                currentEdge = edge;
-                String[] indexes = edge.split("\\s");
-                int firstIndex = Integer.parseInt(indexes[0])-1;
-                int secondIndex = Integer.parseInt(indexes[1])-1;
-                int parentIndex = -1;
-                int childIndex=-1;
-                if(rawNodes[firstIndex].depth >= 0){
-                    if (rawNodes[secondIndex].depth >= 0) {
-                        parentIndex = rawNodes[firstIndex].depth < rawNodes[secondIndex].depth ? firstIndex : secondIndex;
-                    } else {
-                        parentIndex = firstIndex;
+            if(counter < numOfNodes-1){
+                isSet = addChild(rawNodes, line);
+                if(!isSet){
+                    edges.add(line);
+                }
+            }
+            if(!edges.isEmpty()){
+                String currentEdge = null;
+                for(String edge : edges){
+                    currentEdge = edge;
+                    isSet = addChild(rawNodes, edge);
+                    if(isSet){
+                        break;
                     }
-                }else if(rawNodes[secondIndex].depth >= 0) {
-                    parentIndex = secondIndex;
                 }
-                if(parentIndex >= 0){
-                    childIndex = parentIndex==secondIndex ? firstIndex : secondIndex;
-                    NodeInfo parent = rawNodes[parentIndex];
-                    NodeInfo child = rawNodes[childIndex];
-                    parent.children.add(childIndex);
-                    child.depth = parent.depth + 1;
-                    child.parent = parentIndex;
-                    isSet = true;
-                    break;
+                if (isSet) {
+                    edges.remove(currentEdge);
                 }
             }
-            if (isSet) {
-                edges.remove(currentEdge);
-            }
-
+            counter++;
         }
+
         fillTree(rawNodes, tree, 0);
-        return tree.get(0);
+        return tree[0];
     }
 
-    private static void fillTree(NodeInfo[] rawNodes, List<Tree> tree, int index) {
+    private static boolean addChild(NodeInfo[] rawNodes, int firstIndex, int secondIndex){
+        boolean isSet = false;
+        int parentIndex = -1;
+        int childIndex=-1;
+        if(rawNodes[firstIndex].depth >= 0){
+            if (rawNodes[secondIndex].depth >= 0) {
+                parentIndex = rawNodes[firstIndex].depth < rawNodes[secondIndex].depth ? firstIndex : secondIndex;
+            } else {
+                parentIndex = firstIndex;
+            }
+        }else if(rawNodes[secondIndex].depth >= 0) {
+            parentIndex = secondIndex;
+        }
+        if(parentIndex >= 0){
+            childIndex = parentIndex==secondIndex ? firstIndex : secondIndex;
+            NodeInfo parent = rawNodes[parentIndex];
+            NodeInfo child = rawNodes[childIndex];
+            parent.children.add(childIndex);
+            child.depth = parent.depth + 1;
+            child.parent = parentIndex;
+            isSet = true;
+
+        }
+        return isSet;
+    }
+    private static boolean addChild(NodeInfo[] rawNodes, String line){
+        boolean isSet = false;
+        String[] indexes = line.split("\\s");
+        int firstIndex = Integer.parseInt(indexes[0])-1;
+        int secondIndex = Integer.parseInt(indexes[1])-1;
+        int parentIndex = -1;
+        int childIndex=-1;
+        if(rawNodes[firstIndex].depth >= 0){
+            if (rawNodes[secondIndex].depth >= 0) {
+                parentIndex = rawNodes[firstIndex].depth < rawNodes[secondIndex].depth ? firstIndex : secondIndex;
+            } else {
+                parentIndex = firstIndex;
+            }
+        }else if(rawNodes[secondIndex].depth >= 0) {
+            parentIndex = secondIndex;
+        }
+        if(parentIndex >= 0){
+            childIndex = parentIndex==secondIndex ? firstIndex : secondIndex;
+            NodeInfo parent = rawNodes[parentIndex];
+            NodeInfo child = rawNodes[childIndex];
+            parent.children.add(childIndex);
+            child.depth = parent.depth + 1;
+            child.parent = parentIndex;
+            isSet = true;
+
+        }
+        return isSet;
+    }
+
+    private static void fillTree(NodeInfo[] rawNodes, Tree[] tree, int index) {
         if(rawNodes[index].children.isEmpty()){
             NodeInfo leafInfo = rawNodes[index];
-            TreeNode parent = (TreeNode) tree.get(leafInfo.parent);
+            TreeNode parent = (TreeNode) tree[leafInfo.parent];
             TreeLeaf child = new TreeLeaf(leafInfo.value, leafInfo.color, leafInfo.depth);
             parent.addChild(child);
-            tree.set(index, child);
+            tree[index] =  child;
             return;
         }
 
@@ -234,9 +331,9 @@ public class Solution {
         TreeNode parent;
 
         TreeNode newNode = new TreeNode(newNodeInfo.value, newNodeInfo.color,newNodeInfo.depth);
-        tree.set(index, newNode);
+        tree[index] = newNode;
         if(index > 0){
-            parent = (TreeNode) tree.get(newNodeInfo.parent);
+            parent = (TreeNode) tree[newNodeInfo.parent];
             parent.addChild(newNode);
         }
 
@@ -246,90 +343,7 @@ public class Solution {
             fillTree(rawNodes, tree, child);
         }
 
-    }
-
-
-//    public static Tree solve1() {
-//        //read the tree from STDIN and return its root as a return value of this function
-//        Scanner sc = new Scanner(System.in);
-//        int numOfNodes = Integer.parseInt(sc.nextLine());
-//        String[] inputValues = sc.nextLine().split("\\s");
-//        String[] colorsValue = sc.nextLine().split("\\s");
-//        List<String> edges = new ArrayList<>();
-//        NodeInfo[] rawNodes = new NodeInfo[numOfNodes];
-//        List<Tree> tree = new ArrayList<>();
-//
-//        rawNodes[0] = new NodeInfo(Integer.parseInt(inputValues[0]), getColor(colorsValue[0]), 0, new ArrayList<>(), );
-//        for (int i = 1; i < numOfNodes; i++) {
-//            int value = Integer.parseInt(inputValues[i]);
-//            Color color = getColor(colorsValue[i]);
-//            NodeInfo tmp = new NodeInfo(value, color, -1, new ArrayList<>());
-//            rawNodes[i]=tmp;
-//        }
-//        for (int i = 0; i < numOfNodes - 1; i++) {
-//            String line = sc.nextLine();
-//            edges.add(line);
-//        }
-//
-//        while(!edges.isEmpty()){
-//            boolean isSet = false;
-//            String currentEdge = null;
-//            for(String edge : edges){
-//                currentEdge = edge;
-//                String[] indexes = edge.split("\\s");
-//                int firstIndex = Integer.parseInt(indexes[0])-1;
-//                int secondIndex = Integer.parseInt(indexes[1])-1;
-//                int parentIndex = -1;
-//                int childIndex=-1;
-//                if(rawNodes[firstIndex].depth >= 0){
-//                    if (rawNodes[secondIndex].depth >= 0) {
-//                        parentIndex = rawNodes[firstIndex].depth < rawNodes[secondIndex].depth ? firstIndex : secondIndex;
-//                    } else {
-//                        parentIndex = firstIndex;
-//                    }
-//                }else if(rawNodes[secondIndex].depth >= 0) {
-//                    parentIndex = secondIndex;
-//                }
-//                if(parentIndex >= 0){
-//                    childIndex = parentIndex==secondIndex ? firstIndex : secondIndex;
-//                    NodeInfo parent = rawNodes[parentIndex];
-//                    NodeInfo child = rawNodes[childIndex];
-//                    parent.children.add(childIndex);
-//                    child.depth = parent.depth + 1;
-//                    isSet = true;
-//                    break;
-//                }
-//            }
-//            if (isSet) {
-//                edges.remove(currentEdge);
-//            }
-//
-//        }
-//        NodeInfo rootInfo = rawNodes[0];
-//        tree.add(new TreeNode(rootInfo.value,rootInfo.color,0));
-//
-//        for (int i = 1; i < numOfNodes; i++) {
-//            NodeInfo currentNode = rawNodes[i];
-//            if(!currentNode.children.isEmpty()){
-//                tree.add(i, new TreeNode(currentNode.value, currentNode.color, currentNode.depth));
-//
-//            }else{
-//                tree.add(i, new TreeLeaf(currentNode.value, currentNode.color,currentNode.depth));
-//            }
-//        }
-//
-//        for (int i = 0; i < numOfNodes; i++) {
-//            Tree currentNode = tree.get(i);
-//            NodeInfo nodeInfo = rawNodes[i];
-//            if(!nodeInfo.children.isEmpty()){
-//                for(Integer childIndex : nodeInfo.children){
-//                    ((TreeNode) currentNode).addChild(tree.get(childIndex));
-//                }
-//            }
-//        }
-//       return tree.get(0);
-//    }
-
+}
 
     public static void main(String[] args) {
         Tree root = solve();
